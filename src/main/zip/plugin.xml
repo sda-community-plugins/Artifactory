@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin xmlns="http://www.urbancode.com/PluginXMLSchema_v1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <header>
+        <identifier version="1" id="com.urbancode.air.plugin.Artifactory" name="Artifactory"/>
+        <description>The Artifactory plugin allows you to download artifacts from an Artifactory repository as part of a process. Both Maven and NuGet layouts are supported.</description>
+        <tag>Repositories/Artifact/Artifactory</tag>
+    </header>
+
+    <!-- ==================================== -->
+    <!--  Download Version (Maven)            -->
+    <!-- ==================================== -->
+    <step-type name="Download Version (Maven)">
+        <description>Download all files under specified version of a repository built by Maven.</description>
+        <properties>
+            <property name="repositoryName" required="true">
+                <property-ui type="textBox" default-value="${p:version/repository.name}" label="Repository Name"
+                             description="The repository name (key) in Artifactory, i.e. libs-release-local."/>
+            </property>
+            <property name="artifacts" required="true">
+                <property-ui type="textAreaBox" label="Artifact Versions" default-value="${p:version/artifact.path}"
+                             description="A newline-separated list of versions to download. Should be in the form &quot;groupId/artifactId/version&quot;."/>
+            </property>
+            <property name="checkHash" required="false">
+                <property-ui type="checkBox" label="Verify Hash"
+                             description="Select this option to verify hashes after the file is downloaded."/>
+            </property>
+            <property name="serverUrl" required="true">
+                <property-ui type="textBox" default-value="${p:system/artifactory.serverUrl}" label="Artifactory Base URL"
+                             description="The Artifactory Base server URL, i.e. http://localhost:8081/artifactory"/>
+            </property>
+            <property name="username" required="false">
+                <property-ui type="textBox" default-value="${p:system/artifactory.username}" label="User Name"
+                             description="The user name to be used to connect to the Artifactory server."/>
+            </property>
+            <property name="password" required="false">
+                <property-ui type="secureBox" default-value="${p:system/artifactory.password}" label="Password"
+                             description="The password to be used to connect to the Artifactory server."/>
+            </property>
+            <property name="debug" required="false">
+                <property-ui type="checkBox" label="Debug Output" hidden="true"
+                             description="Select this option to display debug output during execution."/>
+            </property>
+        </properties>
+        <post-processing><![CDATA[
+        if (properties.get("exitCode") != 0) {
+            properties.put(new java.lang.String("Status"), new java.lang.String("Failure"));
+        }
+        else {
+            properties.put("Status", "Success");
+        }
+     ]]></post-processing>
+        <command program="${GROOVY_HOME}/bin/groovy">
+            <arg value="-cp"/>
+            <arg path="classes:lib/*"/>
+            <arg value="-Djnp.disableDiscovery=true"/>
+            <arg file="artifactory_maven_download.groovy"/>
+            <arg file="${PLUGIN_INPUT_PROPS}"/>
+            <arg file="${PLUGIN_OUTPUT_PROPS}"/>
+        </command>
+    </step-type>
+
+    <!-- ==================================== -->
+    <!--  Download Version (NuGet)            -->
+    <!-- ==================================== -->
+    <step-type name="Download Version (NuGet)">
+        <description>Download all files under specified version of a repository built by NuGet.</description>
+        <properties>
+            <property name="repositoryName" required="true">
+                <property-ui type="textBox" default-value="${p:version/repository.name}" label="Repository Name"
+                             description="The repository name (key) in Artifactory, i.e. nuget-local."/>
+            </property>
+            <property name="artifacts" required="true">
+                <property-ui type="textAreaBox" label="Package Versions" default-value="${p:version/artifact.path}"
+                             description="A newline-separated list of versions to download. Should be in the form &quot;packageId/versionId&quot;."/>
+            </property>
+            <property name="checkHash" required="false">
+                <property-ui type="checkBox" label="Verify Hash"
+                             description="Select this option to verify hashes after the file is downloaded."/>
+            </property>
+            <property name="serverUrl" required="true">
+                <property-ui type="textBox" default-value="${p:system/artifactory.serverUrl}" label="Artifactory Base URL"
+                             description="The Artifactory Base server URL, i.e. http://localhost:8081/artifactory"/>
+            </property>
+            <property name="username" required="false">
+                <property-ui type="textBox" default-value="${p:system/artifactory.username}" label="User Name"
+                             description="The user name to be used to connect to the Artifactory server."/>
+            </property>
+            <property name="password" required="false">
+                <property-ui type="secureBox" default-value="${p:system/artifactory.password}" label="Password"
+                             description="The password to be used to connect to the Artifactory server."/>
+            </property>
+            <property name="debug" required="false">
+                <property-ui type="checkBox" label="Debug Output" hidden="true"
+                             description="Select this option to display debug output during execution."/>
+            </property>
+        </properties>
+        <post-processing><![CDATA[
+        if (properties.get("exitCode") != 0) {
+            properties.put(new java.lang.String("Status"), new java.lang.String("Failure"));
+        }
+        else {
+            properties.put("Status", "Success");
+        }
+     ]]></post-processing>
+        <command program="${GROOVY_HOME}/bin/groovy">
+            <arg value="-cp"/>
+            <arg path="classes:lib/*"/>
+            <arg value="-Djnp.disableDiscovery=true"/>
+            <arg file="artifactory_nuget_download.groovy"/>
+            <arg file="${PLUGIN_INPUT_PROPS}"/>
+            <arg file="${PLUGIN_OUTPUT_PROPS}"/>
+        </command>
+    </step-type>
+
+</plugin>

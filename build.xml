@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<project name="JIRA" default="all" basedir="."
+    xmlns:codestation="antlib:com.urbancode.codestation2.client">
+
+    <property environment="env"/>
+    <property file=".build.properties"/>
+
+    <defaultexcludes add="**/.ahs.*"/>
+    <defaultexcludes add="**/*.bom"/>
+
+    <!-- AHP settings -->
+    <property name="ahp.branch" value="air" />
+    <property name="ahp.project.name" value="${ant.project.name}" />
+
+    <!-- =================================================== -->
+    <!-- PROJECT STRUCTURE                                   -->
+    <!-- =================================================== -->
+
+    <property name="lib.dir"           location="lib" />
+    <property name="build.dir"         location="build" />
+    <property name="build.plugin.dir"  location="${build.dir}/plugin" />
+    <property name="src.dir"           location="src" />
+    <property name="src.wsdl.dir"      location="${src.dir}/main/wsdl" />
+
+
+    <!-- =================================================== -->
+    <!-- MACROS                                              -->
+    <!-- =================================================== -->
+
+    <macrodef name="emptyDir" description="Ensure that the target directory exists and is empty">
+        <attribute name="dir"/>
+        <attribute name="excludes" default=""/>
+        <sequential>
+            <mkdir dir="@{dir}"/>
+            <delete dir="@{dir}" includes="*/**" excludes="@{excludes}" includeemptydirs="true" defaultexcludes="false"/>
+        </sequential>
+    </macrodef>
+
+    <macrodef name="wsdl2jar" description="Generate a jar file for the given wsdl file">
+        <attribute name="wsdl"/>
+        <attribute name="jarfile"/>
+        <sequential>
+            <mkdir dir="@{wsdl}-tmp"/>
+
+            <axis-wsdl2java output="@{wsdl}-tmp"
+                    url="@{wsdl}"
+                    verbose="true"
+                    serverside="false"
+                    helpergen="true">
+            </axis-wsdl2java>
+            <javac srcdir="@{wsdl}-tmp" target="1.5">
+                <classpath><fileset dir="${lib.dir}" includes="**/axis*.jar"/></classpath>
+            </javac>
+            <jar basedir="@{wsdl}-tmp" jarfile="@{jarfile}" includes="**/*.class"/>
+
+            <delete dir="@{wsdl}-tmp"/>
+        </sequential>
+    </macrodef>
+
+    <!-- =================================================== -->
+    <!-- TARGETS                                             -->
+    <!-- =================================================== -->
+
+    <target name="taskdef" unless="taskdef.no" depends="resolve">
+      <path id="taskdefpath">
+        <fileset dir="${lib.dir}" includes="*.jar"/>
+        <fileset dir="${lib.dir}/build" includes="*.jar"/>
+      </path>
+
+      <taskdef name="groovy"  classname="org.codehaus.groovy.ant.Groovy" classpathref="taskdefpath" />
+      <taskdef name="groovyc" classname="org.codehaus.groovy.ant.Groovyc" classpathref="taskdefpath" />
+
+      <taskdef resource="axis-tasks.properties" classpathref="taskdefpath"/>
+
+    </target>
+
+    <target name="gen-jira-libs">
+        <mkdir dir="${build.plugin.dir}"/>
+        <wsdl2jar wsdl="${src.wsdl.dir}/jira-3.6.5.wsdl"   jarfile="${build.plugin.dir}/jira-3.6.5.wsdl.jar"/>
+        <wsdl2jar wsdl="${src.wsdl.dir}/jira-3.11.wsdl"    jarfile="${build.plugin.dir}/jira-3.11.wsdl.jar"/>
+        <wsdl2jar wsdl="${src.wsdl.dir}/jira-4.3-rc1.wsdl" jarfile="${build.plugin.dir}/jira-4.3-rc1.wsdl.jar"/>
+        <wsdl2jar wsdl="${src.wsdl.dir}/jira-4.4.4.wsdl" jarfile="${build.plugin.dir}/jira-4.4.4.wsdl.jar"/>
+    </target>
+
+    <target name="dist" depends="resolve,taskdef,gen-jira-libs" description="Create distribution">
+        <ant antfile="plugin-build.xml" target="dist" inheritall="true"/>
+    </target>
+
+    <target name="all" depends="resolve,taskdef,gen-jira-libs">
+      <ant antfile="plugin-build.xml" target="all" inheritall="true"/>
+    </target>
+
+    <target name="clean" description="Cleans build output">
+      <emptyDir dir="${lib.dir}" excludes="ext/**"/>
+      <ant antfile="plugin-build.xml" target="clean" inheritall="true"/>
+    </target>
+
+    <target name="resolve" unless="resolve.no" description="Resolve all dependencies">
+        <mkdir dir="${lib.dir}"/>
+        <codestation:resolve buildLife="${env.AH_BUILD_LIFE_ID}"
+                xmlFile="dependencies.xml"/>
+    </target>
+
+    <target name="publish" unless="publish.no"
+            description="Build artifacts and publish them to codestation">
+        <codestation:publish project="${ahp.project.name}"
+                           workflow="${ahp.workflow.name}"
+                           publishall="true"/>
+    </target>
+
+    <!-- =================================================== -->
+    <!-- TEST TARGETS                                        -->
+    <!-- =================================================== -->
+
+    <target name="run-tests" depends="resolve" unless="tests.no">
+      <ant antfile="plugin-build.xml" target="run-tests" inheritall="true"/>
+    </target>
+
+    <target name="run-single-test" depends="resolve" unless="tests.no">
+      <ant antfile="plugin-build.xml" target="run-single-test" inheritall="true"/>
+    </target>
+
+</project>
